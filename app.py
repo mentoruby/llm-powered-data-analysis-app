@@ -1,4 +1,15 @@
+import pandas as pd
 import streamlit as st
+import openai
+import logging
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+logging.config.fileConfig('logging.conf')
+
+logger = logging.getLogger("simpleExample")
+
+logger.info("App Started Up")
 
 st.set_page_config(
     page_title = 'Ask your CSV',
@@ -6,6 +17,152 @@ st.set_page_config(
     layout = 'wide'
 )
 
+# Initialize OpenAI Client
+client = openai.OpenAI(api_key = st.secrets['OPENAI_API_KEY'])
+
+# Session State initialization
+if "messages" not in st.session_state:
+    st.session_state["messages"] = []
+if "df" not in st.session_state:
+    st.session_state.df = None
+
 st.title('📊 Ask your CSV')
+st.markdown('Upload your data and ask questions in plain English!')
 
+# Sidebar for file upload
+with st.sidebar:
+    st.header('Data Upload')
+    uploaded_file = st.file_uploader('Upload your data', type=['csv'])
 
+    if uploaded_file:
+        try:
+            df = pd.read_csv(uploaded_file)
+            st.session_state.df = df
+
+            # Create data summary for token optimization
+            st.session_state.data_summary = {
+                "shape": df.shape,
+                "columns": df.columns.tolist(),
+                "dtypes": df.dtypes.to_dict(),
+                "sample": df.head(3).to_dict(),
+                "stats": df.describe().to_dict() if not df.empty else {}
+            }
+
+            st.success(f"Successfully uploaded your data! It has {df.shape[0]} rows and {df.shape[1]} columns.")
+
+            # data preview
+            with st.expander('Preview data', expanded=True):
+                st.dataframe(df.head())
+
+            # Basic stats
+            with st.expander('Metrics', expanded=True):
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.metric("Total Rows", df.shape[0])
+                    st.metric("Total Columns", df.shape[1])
+                with col2:
+                    st.metric("Memory Usage", f"{df.memory_usage().sum() / 1024:1f} KB")
+                    st.metric("Missing Values", df.isnull().sum().sum())
+
+        except Exception as ex:
+            st.error(f"Error reading file: {str(ex)}")
+            st.info("Please make sure your file is a valid CSV format.")
+
+    else:
+        st.info("Please upload a CSV file to start analyzing!")
+
+# Main chat interface
+if st.session_state.df is not None:
+    # Display chat history
+    for msg in st.session_state.messages:
+        with st.chat_message(msg["role"]): # grabs relevant message
+            st.markdown(msg["content"]) # display relevant message in appropriate styling on screen
+
+    # Chat input
+    user_input = st.chat_input('Ask a question about your data')
+    if user_input:
+        # Add user message to message history
+        st.session_state.messages.append({'role':'user','content':user_input})
+
+        # Display user message on screen
+        with st.chat_message("user"):
+            st.markdown(user_input)
+
+        # Prepare data context with token optimization
+        df = st.session_state.df
+        if len(df) > 50:
+            data_context = f"""
+            Dataset shape: {st.session_state.data_summary['shape']}
+            Columns: {', '.join(st.session_state.data_summary['columns'])}
+            Data types: {st.session_state.data_summary['dtypes']}
+            Sample rows: {st.session_state.data_summary['sample']}
+            Basic statistics: {st.session_state.data_summary['stats']}
+            """
+            logger.info(f"Sending data summary to assistant: {data_context}")
+        else:
+            logger.info(f"Sending full dataset to assistant")
+            data_context = f"""
+            Full dataset:
+            {df.to_string()}
+            """
+        # system prompt
+        system_prompt = f"""You are a helpful data analyst assistant. 
+        
+        The user has uploaded a CSV file with the following information:
+        {data_context}
+        
+        The data is loaded in a pandas DataFrame called `df`.
+        
+        Guidelines:
+        - Answer the user's question clearly and concisely
+        - If the question requires analysis, write Python code using pandas, matplotlib, or seaborn
+        - For visualizations, always use plt.figure() before plotting and include plt.tight_layout()
+        - Always validate data before operations (check for nulls, data types, etc.)
+        - If you can't answer due to data limitations, explain why
+        - Keep responses focused on the data and question asked
+        - Summarize your findings, insights, and any relevant statistics or visual trends.
+        - Focus on delivering the results and what they mean, not on how to get them.
+        - If a chart or visualization would help, display the chart in the response using matplotlib or seaborn.
+        - If a user asks for a specific visualization, display the chart in the response using matplotlib or seaborn.
+        
+        When writing code:
+        - Import statements are already done (pandas as pd, matplotlib.pyplot as plt, seaborn as sns)
+        - The dataframe is available as 'df'
+        - For plots, use plt.figure(figsize=(10, 6)) for better display
+        - Always add titles and labels to plots
+        """
+
+        # Generate response
+        with st.chat_message('assistant'):
+            with st.spinner('Analyzing your data...'):
+                try:
+                    response = client.chat.completions.create(
+                        model = "gpt-4.1",
+                        messages = [
+                            {"role": "system", "content": system_prompt},
+                            {"role": "user", "content": user_input}
+                        ],
+                        temperature = 0.1,
+                        max_tokens = 100
+                    )
+
+                    reply = response.choices[0].message.content
+                    st.markdown(reply)
+
+                    # Save assistant response to history
+                    st.session_state.messages.append({'role':'assistant','content':reply})
+                except Exception as ex:
+                    st.error(f"Error generating response: {str(ex)}")
+                    st.info("Please try again.")
+
+else:
+    # No data uploaded state
+    col1, col2, col3 = st.columns([1,2,1])
+    with col1:
+        st.info("Please upload a CSV file to start analyzing!")
+        st.markdown('### Example question you can ask:')
+        st.markdown("""
+        - What are the main trends in my data?
+        - Show me a correlation matrix
+        - Create a bar chart of the top 10 categories
+        """)
