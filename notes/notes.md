@@ -1,3 +1,30 @@
+# In this project
+Build an AI assistant that can 
+- read CSV file
+- understand natural language question
+- execute analysis code
+- create visualizations
+- remember context for follow-up questions
+- handle error gracefully
+- export analysis reports
+
+## Not including below functionalities, but worth handling in next phrase
+- authentication
+- rate limiting
+- more robust error handling
+- support more file formats, e.g. Excels, JSON
+- add SQL Query interface to let users write custom queries
+- integrate with Google Sheet API to analyze live data directly from spreadsheets
+
+## AI Enhancement TODO
+- create custom prompts for specify industries such as finance or healthcare
+- add model selector to choose between GPT-4, Claude or other open souce models based on user needs
+- explore LangChain for building more complex AI workflows
+
+## Business Enhancement
+- implement usage tracking to understand which feature matters most
+- build team collaboration features where users can share and annotate analysis
+
 ## Hot Reloading
 A feature that allows developers to see changes instantly without restarting the application.
 
@@ -44,5 +71,3 @@ Preserving key information without including the entire code responses previousl
 Small tricks like above can be easily overlooked, this can reduce your token usage by 60-70% without affecting the quality of responses.
 
 The AI still understands the conversation flows, but we are not paying to send same code blocks again and again.
-
-
