@@ -7,3 +7,8 @@ seaborn
 plotly
 openai
 logging
+# For local LLM serving
+boto3
+sglang
+ray[serve,llm]>=2.45.0
+torch==2.10.0

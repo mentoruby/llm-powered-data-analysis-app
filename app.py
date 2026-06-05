@@ -21,7 +21,7 @@ st.set_page_config(
 )
 
 # Initialize OpenAI Client
-client = openai.OpenAI(api_key = st.secrets['OPENAI_API_KEY'])
+client = openai.OpenAI(base_url="http://127.0.0.1:8265", api_key = "Fake")
 
 # Session State initialization
 if "messages" not in st.session_state:
