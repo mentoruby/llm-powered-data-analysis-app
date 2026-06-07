@@ -18,7 +18,7 @@ st.set_page_config(
 )
 
 # Initialize OpenAI Client
-client = openai.OpenAI(api_key = st.secrets['OPENAI_API_KEY'])
+client = openai.OpenAI(base_url="http://model-runner.docker.internal/engines/llama.cpp/v1", api_key = "Fake")
 
 # Session State initialization
 if "messages" not in st.session_state:
@@ -137,7 +137,7 @@ if st.session_state.df is not None:
             with st.spinner('Analyzing your data...'):
                 try:
                     response = client.chat.completions.create(
-                        model = "gpt-4.1",
+                        model = "ai/gemma4:4B",
                         messages = [
                             {"role": "system", "content": system_prompt},
                             {"role": "user", "content": user_input}
