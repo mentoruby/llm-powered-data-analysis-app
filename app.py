@@ -1,6 +1,7 @@
 import pandas as pd
 import streamlit as st
 import openai
+import os
 import logging
 import logging.config
 import matplotlib.pyplot as plt
@@ -21,7 +22,7 @@ st.set_page_config(
 )
 
 # Initialize OpenAI Client
-client = openai.OpenAI(api_key = st.secrets['OPENAI_API_KEY'])
+client = openai.OpenAI(base_url = "http://localhost:12434/engines/llama.cpp/v1", api_key = "abc")
 
 # Session State initialization
 if "messages" not in st.session_state:
@@ -172,7 +173,7 @@ if st.session_state.df is not None:
                     )
 
                     response = client.chat.completions.create(
-                        model = "gpt-4.1",
+                        model = "docker.io/ai/gemma4:E2B",
                         messages = messages,
                         temperature = 0.1,
                         max_tokens = 1500

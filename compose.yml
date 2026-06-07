@@ -1,0 +1,6 @@
+services:
+  ai_runner:
+    provider:
+      type: model
+      options:
+        model: ai/gemma4:E2B
