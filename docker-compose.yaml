@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  ai_runner:
+    provider:
+      type: model
+      options:
+        model: ai/gemma4:4B
+    
+  local-llm-ray:
+    # Not enough memory to run, need to refine the config
+    image: python:3.12.13
+    #image:  rayproject/ray-llm:nightly-extra-py312-cu130
+    container_name: local-llm-ray
+    ports:
+      - "8501:8501"  # For Streamlit
+      - "8265:8265"  # For Ray Dashboard
+    volumes: 
+      - ./src:/src
+    working_dir: /src
+    environment:
+      - JUPYTER_TOKEN=${JUPYTER_TOKEN:-your_secure_token_here}
+      - HF_TOKEN=${HF_TOKEN:-your_huggingface_token_here}
+      # - CUDA_VISIBLE_DEVICES=all
+      # - TORCH_CUDA_ARCH_LIST=7.5;8.0;8.6;8.9;9.0
+      # - PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:512
+    command: >
+      bash -c "
+        pip install -r requirements.txt &&
+        streamlit run app.py
+      "
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+        limits:
+          memory: 20G
+    #restart: unless-stopped
