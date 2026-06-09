@@ -1,8 +1,6 @@
 import pandas as pd
 import streamlit as st
 import openai
-import os
-import logging
 import logging.config
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -22,7 +20,12 @@ st.set_page_config(
 )
 
 # Initialize OpenAI Client
-client = openai.OpenAI(base_url = "http://localhost:12434/engines/llama.cpp/v1", api_key = "abc")
+base_url = "http://localhost:12434/engines/llama.cpp/v1"
+selected_ai_model = "docker.io/ai/llama3.2:3B-F16"
+# base_url = "http://192.168.69.17:12434/engines/llama.cpp/v1"
+# selected_ai_model = "docker.io/ai/gemma4:12B"
+client = openai.OpenAI(base_url = base_url, api_key = "abc")
+
 
 # Session State initialization
 if "messages" not in st.session_state:
@@ -173,7 +176,7 @@ if st.session_state.df is not None:
                     )
 
                     response = client.chat.completions.create(
-                        model = "docker.io/ai/gemma4:E2B",
+                        model = selected_ai_model,
                         messages = messages,
                         temperature = 0.1,
                         max_tokens = 1500
@@ -187,6 +190,8 @@ if st.session_state.df is not None:
                     # try to execute any code in the response
                     if "```python" in reply:
                         code_blocks = reply.split("```python")
+
+                        logger.info(f"{len(code_blocks) - 1} python code block(s) is found in the response")
                         for i in range(1, len(code_blocks)):
                             code = code_blocks[i].split("```")[0]
                             try:
